@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NodesMonitor</title>
+  <style>
+    table, th, td {border: 1px solid #2B547E;text-align: center;border-radius: 2px;padding: 8px;position: relative;z-index: 2;font-weight: bold;font-size: 16px;}
+    th {background-color: #0C2D48;color: #fff;}
+    .red-text {color: red;}
+    body {background-image: url("https://media.istockphoto.com/id/505487687/de/vektor/vektor-abstrakte-wertvolle-metallic-hintergrund-mit-curve.jpg?b=1&s=170667a&w=0&k=20&c=im7gmoIb0IjKMNNfRC7NdgTlTs1mU1o6zBqx-QjEwxE="); background-attachment: fixed; background-size: cover;}
+    .logo {position: fixed;top: 50%;left: 50%;transform: translate(-50%, -50%);z-index: 1;width: 280px;height: auto;}
+  </style>
+  <link rel="shortcut icon" type="image/png" href="https://avatars.githubusercontent.com/u/66076991?v=4">
+</head>
+
+<body>
+  <img src="https://avatars.githubusercontent.com/u/66076991?v=4" alt="Logo" class="logo">
+  <table id="myTable">
+    <thead>
+      <th style="width: 43%;">Node Name</th>
+      <th style="width: 54%;">Node Address</th>
+      <th style="width: 3%;">Last Call</th>
+    </thead>
+    <tbody></tbody>
+  </table>
+  <button type="button" id="add-node">Add Node</button>
+  <script>
+    const nodes_array = [
+      { NodeName: "Inteleptul", NodeAddress: "0x58122A9f23E70061a1FD40A13a2C1F66c903dd0e" },
+    ];
+
+    async function fetchTransactions(node) {
+      try {
+        const response = await fetch(`https://blockexplorer.bloxberg.org/api?module=account&action=txlist&address=${node.NodeAddress}`);
+        const json = await response.json();
+        const node_transactions_array = json.result;
+        if (node_transactions_array.length > 0) {
+          const last_transaction_time = Math.round((Date.now() / 1000 - node_transactions_array[0].timeStamp) / 3600);
+          return { ...node, last_transaction_time };
+        }
+      } catch (error) {
+        console.log(error);
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", async function () {
+      const nodes_with_transactions = await Promise.all(nodes_array.map(fetchTransactions));
+      const tbodyRef = document.querySelector("#myTable tbody");
+      nodes_with_transactions.forEach((node) => {
+        const newRow = tbodyRef.insertRow();
+        const newNodeNameCell = newRow.insertCell();
+        const newNodeAddressCell = newRow.insertCell();
+        const newTransactionTimeCell = newRow.insertCell();
+        newNodeNameCell.textContent = node.NodeName;
+        const newNodeAddressText = window.innerWidth < window.innerHeight ? `${node.NodeAddress.substr(0, 5)}...${node.NodeAddress.substr(-5)}` : node.NodeAddress;
+        const newNodeAddressLink = document.createElement("a");
+        newNodeAddressLink.href = `https://blockexplorer.bloxberg.org/address/${node.NodeAddress}`;
+        newNodeAddressLink.textContent = newNodeAddressText;
+        newNodeAddressCell.appendChild(newNodeAddressLink);
+        newTransactionTimeCell.textContent = node.last_transaction_time || "Last Hour";
+        if (node.last_transaction_time > 20) {
+          newTransactionTimeCell.classList.add("red-text");
+        }
+      });
+    });
+
+    document.getElementById("add-node").addEventListener("click", function () {
+      const nodeName = prompt("Enter the Node Name:");
+      const nodeAddress = prompt("Enter the Node Address:");
+      const newNode = { NodeName: nodeName, NodeAddress: nodeAddress };
+      nodes_array.push(newNode);
+      fetchTransactions(newNode).then((nodeWithTransactions) => {
+        const tbodyRef = document.querySelector("#myTable tbody");
+        const newRow = tbodyRef.insertRow();
+        const newNodeNameCell = newRow.insertCell();
+        const newNodeAddressCell = newRow.insertCell();
+        const newTransactionTimeCell = newRow.insertCell();
+        newNodeNameCell.textContent = nodeWithTransactions.NodeName;
+        const newNodeAddressText = window.innerWidth < window.innerHeight ? `${nodeWithTransactions.NodeAddress.substr(0, 5)}...${nodeWithTransactions.NodeAddress.substr(-5)}` : nodeWithTransactions.NodeAddress;
+        const newNodeAddressLink = document.createElement("a");
+        newNodeAddressLink.href = `https://blockexplorer.bloxberg.org/address/${nodeWithTransactions.NodeAddress}`;
+        newNodeAddressLink.textContent = newNodeAddressText;
+        newNodeAddressCell.appendChild(newNodeAddressLink);
+        newTransactionTimeCell.textContent = nodeWithTransactions.last_transaction_time || "Last Hour";
+        if (nodeWithTransactions.last_transaction_time > 20) {
+          newTransactionTimeCell.classList.add("red-text");
+        }
+      });
+    });
+  </script>
+</body>
+
+</html>
